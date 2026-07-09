@@ -1,3 +1,2 @@
-SELECT *
-FROM employees
-WHERE Salary > 60000;
+SELECT TOP 5 *
+FROM employees;
