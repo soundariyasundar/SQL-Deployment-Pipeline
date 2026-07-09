@@ -1,2 +1,2 @@
 DELETE FROM employees
-WHERE emp_id IN (108,109,110,111,112,113);
+WHERE emp_id IN (102,103,104,105);
