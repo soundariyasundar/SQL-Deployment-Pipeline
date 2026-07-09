@@ -1,1 +1,6 @@
-DROP USER 'testuser'@'localhost';
+GRANT SELECT, INSERT, UPDATE
+
+ON employees
+
+TO TestUser;
+ 
