@@ -1,4 +1,4 @@
-UPDATE employees
-SET Salary = 80000,
-    Department = 'IT'
-WHERE emp_id = 102;
+ALTER TABLE employees
+
+ADD Email VARCHAR(100);
+ 
