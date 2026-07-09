@@ -1,35 +1,57 @@
 #!/bin/bash
+set -e
 
 FILE=$1
 
-echo "Validating SQL..."
+echo "======================================"
+echo "SQL Validation Started"
+echo "======================================"
 
-if [ ! -f "$FILE" ]
-then
-    echo "SQL File Not Found"
+# File exists
+if [ ! -f "$FILE" ]; then
+    echo "ERROR: SQL file not found."
     exit 1
 fi
 
-if grep -qiE "DROP|TRUNCATE|ALTER|GRANT|REVOKE" "$FILE"
-then
-    echo "Dangerous SQL Command Found"
+# File not empty
+if [ ! -s "$FILE" ]; then
+    echo "ERROR: SQL file is empty."
     exit 1
 fi
 
-if grep -qi "^UPDATE" "$FILE"
-then
-    grep -qi "WHERE" "$FILE" || {
-        echo "UPDATE without WHERE clause"
-        exit 1
-    }
+# Every statement should end with ;
+LAST_LINE=$(grep -v '^[[:space:]]*$' "$FILE" | tail -1)
+
+if [[ "$LAST_LINE" != *";" ]]; then
+    echo "ERROR: SQL statement must end with ';'"
+    exit 1
 fi
 
-if grep -qi "^DELETE" "$FILE"
-then
-    grep -qi "WHERE" "$FILE" || {
-        echo "DELETE without WHERE clause"
-        exit 1
-    }
+# Parentheses check
+OPEN=$(grep -o "(" "$FILE" | wc -l)
+CLOSE=$(grep -o ")" "$FILE" | wc -l)
+
+if [ "$OPEN" -ne "$CLOSE" ]; then
+    echo "ERROR: Unbalanced parentheses."
+    exit 1
 fi
 
-echo "Validation Successful"
+# Warn if tabs are used
+if grep -q $'\t' "$FILE"; then
+    echo "WARNING: Tabs detected. Use spaces for indentation."
+fi
+
+# Warn if trailing spaces exist
+if grep -nE "[[:blank:]]+$" "$FILE"; then
+    echo "WARNING: Trailing spaces found."
+fi
+
+# Warn if SQL keywords are lowercase
+if grep -qiE "select|insert|update|delete|create|alter|drop" "$FILE"; then
+    if grep -qE "^[[:space:]]*(select|insert|update|delete|create|alter|drop)" "$FILE"; then
+        echo "WARNING: Consider using uppercase SQL keywords."
+    fi
+fi
+
+echo ""
+echo "SQL formatting validation completed successfully."
