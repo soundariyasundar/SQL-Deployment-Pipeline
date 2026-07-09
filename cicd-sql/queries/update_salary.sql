@@ -1,3 +1,1 @@
-CREATE USER 'testuser'@'localhost'
-IDENTIFIED BY 'Password@123';
- 
+DROP USER 'testuser'@'localhost';
