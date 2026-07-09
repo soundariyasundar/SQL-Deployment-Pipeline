@@ -1,2 +1,3 @@
-SELECT TOP 5 *
-FROM employees;
+SELECT *
+FROM employees
+LIMIT 5;
