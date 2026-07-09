@@ -1,6 +1,4 @@
-GRANT SELECT, INSERT, UPDATE
-
-ON employees
-
-TO TestUser;
+SELECT *
+FROM employees
+WHERE Salary > 60000;
  
