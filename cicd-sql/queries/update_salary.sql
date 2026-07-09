@@ -1,4 +1,3 @@
-ALTER TABLE employees
-
-ADD Email VARCHAR(100);
+CREATE USER 'testuser'@'localhost'
+IDENTIFIED BY 'Password@123';
  
