@@ -1,0 +1,15 @@
+{
+  "pre-prod": {
+    "host": "172.31.22.97",
+    "port": 3306,
+    "database": "company_db",
+    "credentialsId": "mysql-preprod-credentials"
+  },
+
+  "production": {
+    "host": "172.31.22.97",
+    "port": 3306,
+    "database": "company_db",
+    "credentialsId": "mysql-prod-credentials"
+  }
+}

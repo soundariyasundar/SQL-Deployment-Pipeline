@@ -1,0 +1,11 @@
+{
+  "pre-prod": {
+    "sqlApprovers": "sqladmin",
+    "appApprovers": "appadmin"
+  },
+
+  "production": {
+    "sqlApprovers": "sqllead",
+    "appApprovers": "applead"
+  }
+}
