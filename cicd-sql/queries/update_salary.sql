@@ -1,3 +1,4 @@
-SELECT *
-FROM employees
-LIMIT 5;
+UPDATE employees
+SET Salary = 80000,
+    Department = 'IT'
+WHERE EmployeeID = 102;
