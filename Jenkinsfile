@@ -20,10 +20,10 @@ pipeline {
             description: 'Enter JIRA Ticket Number'
         )
 
-        string(
-            name: 'SQL_FILE',
-            defaultValue: 'update_salary.sql',
-            description: 'SQL file inside cicd-sql/queries'
+        text(
+            name: 'SQL_QUERY',
+            defaultValue: '',
+            description: 'Paste SQL Query Here'
         )
 
     }
@@ -51,8 +51,8 @@ pipeline {
                 ]) {
 
                     sh '''
-                    chmod +x cicd-sql/scripts/verify-db-connectivity.sh
-                    ./cicd-sql/scripts/verify-db-connectivity.sh
+                        chmod +x cicd-sql/scripts/verify-db-connectivity.sh
+                        ./cicd-sql/scripts/verify-db-connectivity.sh
                     '''
 
                 }
@@ -61,22 +61,39 @@ pipeline {
 
         }
 
-        stage('2. COMMAND VALIDATION') {
+        stage('2. CREATE SQL FILE') {
 
             steps {
 
-                sh """
-                chmod +x cicd-sql/scripts/validate-sql.sh
+                script {
 
-                ./cicd-sql/scripts/validate-sql.sh \
-                cicd-sql/queries/${params.SQL_FILE}
-                """
+                    writeFile(
+                        file: 'runtime.sql',
+                        text: params.SQL_QUERY
+                    )
+
+                }
+
+                echo "runtime.sql created successfully."
 
             }
 
         }
 
-        stage('3. APPROVAL BY SQL TEAM') {
+        stage('3. COMMAND VALIDATION') {
+
+            steps {
+
+                sh '''
+                    chmod +x cicd-sql/scripts/validate-sql.sh
+                    ./cicd-sql/scripts/validate-sql.sh runtime.sql
+                '''
+
+            }
+
+        }
+
+        stage('4. APPROVAL BY SQL TEAM') {
 
             steps {
 
@@ -88,9 +105,9 @@ JIRA Ticket :
 
 ${params.JIRA_TICKET}
 
-SQL File :
+SQL Query :
 
-${params.SQL_FILE}
+${params.SQL_QUERY}
 
 Please review the SQL before execution.
 
@@ -99,7 +116,6 @@ Approve?
 """,
 
                     ok: "Approve",
-
                     submitter: "sqladmin"
 
                 )
@@ -108,7 +124,7 @@ Approve?
 
         }
 
-        stage('4. PLAN (INTENDED OUTPUT)') {
+        stage('5. PLAN (INTENDED OUTPUT)') {
 
             steps {
 
@@ -120,14 +136,13 @@ Approve?
                     )
                 ]) {
 
-                    sh """
+                    sh '''
 
-                    chmod +x cicd-sql/scripts/plan-sql.sh
+                        chmod +x cicd-sql/scripts/plan-sql.sh
 
-                    ./cicd-sql/scripts/plan-sql.sh \
-                    cicd-sql/queries/${params.SQL_FILE}
+                        ./cicd-sql/scripts/plan-sql.sh runtime.sql
 
-                    """
+                    '''
 
                 }
 
@@ -135,7 +150,7 @@ Approve?
 
         }
 
-        stage('5. APPROVAL BY APPLICATION TEAM') {
+        stage('6. APPROVAL BY APPLICATION TEAM') {
 
             steps {
 
@@ -143,22 +158,21 @@ Approve?
 
                     message: """
 
-Execution Plan Generated.
+Execution Plan Generated
 
-JIRA :
+JIRA Ticket :
 
 ${params.JIRA_TICKET}
 
-SQL :
+SQL Query :
 
-${params.SQL_FILE}
+${params.SQL_QUERY}
 
-Approve Database Write?
+Approve Database Execution?
 
 """,
 
                     ok: "Execute",
-
                     submitter: "appadmin"
 
                 )
@@ -167,7 +181,7 @@ Approve Database Write?
 
         }
 
-        stage('6. EXECUTE SQL') {
+        stage('7. EXECUTE SQL') {
 
             steps {
 
@@ -179,14 +193,13 @@ Approve Database Write?
                     )
                 ]) {
 
-                    sh """
+                    sh '''
 
-                    chmod +x cicd-sql/scripts/execute-sql.sh
+                        chmod +x cicd-sql/scripts/execute-sql.sh
 
-                    ./cicd-sql/scripts/execute-sql.sh \
-                    cicd-sql/queries/${params.SQL_FILE}
+                        ./cicd-sql/scripts/execute-sql.sh runtime.sql
 
-                    """
+                    '''
 
                 }
 
@@ -212,6 +225,12 @@ Approve Database Write?
             echo "=================================="
             echo "SQL Deployment Failed"
             echo "=================================="
+
+        }
+
+        always {
+
+            sh 'rm -f runtime.sql'
 
         }
 
