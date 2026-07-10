@@ -19,7 +19,7 @@ if [ ! -s "$FILE" ]; then
     exit 1
 fi
 
-# Every statement should end with ;
+# SQL must end with ;
 LAST_LINE=$(grep -v '^[[:space:]]*$' "$FILE" | tail -1)
 
 if [[ "$LAST_LINE" != *";" ]]; then
@@ -27,7 +27,13 @@ if [[ "$LAST_LINE" != *";" ]]; then
     exit 1
 fi
 
-# Parentheses check
+# Detect ':' instead of ';'
+if grep -q ":$" "$FILE"; then
+    echo "ERROR: Invalid ':' found. SQL statements must end with ';'"
+    exit 1
+fi
+
+# Parentheses validation
 OPEN=$(grep -o "(" "$FILE" | wc -l)
 CLOSE=$(grep -o ")" "$FILE" | wc -l)
 
@@ -47,11 +53,11 @@ if grep -nE "[[:blank:]]+$" "$FILE"; then
 fi
 
 # Warn if SQL keywords are lowercase
-if grep -qiE "select|insert|update|delete|create|alter|drop" "$FILE"; then
-    if grep -qE "^[[:space:]]*(select|insert|update|delete|create|alter|drop)" "$FILE"; then
-        echo "WARNING: Consider using uppercase SQL keywords."
-    fi
+if grep -qE "^[[:space:]]*(select|insert|update|delete|create|alter|drop|truncate|grant|revoke)" "$FILE"; then
+    echo "WARNING: SQL keywords should preferably be uppercase."
 fi
 
 echo ""
-echo "SQL formatting validation completed successfully."
+echo "======================================"
+echo "SQL Validation Successful"
+echo "======================================"
