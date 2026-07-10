@@ -31,7 +31,7 @@ pipeline {
     environment {
 
         DB_HOST = "172.31.22.97"
-        DB_PORT = "3307"
+        DB_PORT = "3306"
         DB_NAME = "company_db"
 
     }
