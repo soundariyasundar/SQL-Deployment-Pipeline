@@ -1,0 +1,203 @@
+pipeline {
+
+    agent any
+
+    options {
+        timestamps()
+    }
+
+    parameters {
+
+        choice(
+            name: 'TARGET_ENV',
+            choices: ['pre-prod', 'production'],
+            description: 'Select Environment'
+        )
+
+        string(
+            name: 'JIRA_TICKET',
+            defaultValue: '',
+            description: 'Enter JIRA Ticket Number'
+        )
+
+        text(
+            name: 'SQL_QUERY',
+            defaultValue: '',
+            description: 'Paste SQL Query Here'
+        )
+
+    }
+
+    environment {
+
+        DB_HOST = "172.31.22.97"
+        DB_PORT = "3306"
+        DB_NAME = "company_db"
+
+    }
+
+    stages {
+
+        stage('1. CONNECTIVITY CHECK') {
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'mysql-preprod-credentials',
+                        usernameVariable: 'DB_USER',
+                        passwordVariable: 'DB_PASSWORD'
+                    )
+                ]) {
+
+                    sh '''
+                        chmod +x cicd-sql/scripts/verify-db-connectivity.sh
+                        ./cicd-sql/scripts/verify-db-connectivity.sh
+                    '''
+
+                }
+
+            }
+
+        }
+
+        stage('2. CREATE SQL FILE') {
+
+            steps {
+
+                script {
+
+                    writeFile(
+                        file: 'runtime.sql',
+                        text: params.SQL_QUERY
+                    )
+
+                }
+
+                echo "runtime.sql created successfully."
+
+            }
+
+        }
+
+        stage('3. COMMAND VALIDATION') {
+
+            steps {
+
+                sh '''
+                    chmod +x cicd-sql/scripts/validate-sql.sh
+                    ./cicd-sql/scripts/validate-sql.sh runtime.sql
+                '''
+
+            }
+
+        }
+
+        stage('4. PLAN (INTENDED OUTPUT)') {
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'mysql-preprod-credentials',
+                        usernameVariable: 'DB_USER',
+                        passwordVariable: 'DB_PASSWORD'
+                    )
+                ]) {
+
+                    sh '''
+                        chmod +x cicd-sql/scripts/plan-sql.sh
+                        ./cicd-sql/scripts/plan-sql.sh runtime.sql
+                    '''
+
+                }
+
+            }
+
+        }
+
+        stage('5. APPROVAL BY APPLICATION TEAM') {
+
+            steps {
+
+                input(
+
+                    message: """
+
+Execution Plan Generated
+
+JIRA Ticket:
+
+${params.JIRA_TICKET}
+
+SQL Query:
+
+${params.SQL_QUERY}
+
+Approve Database Execution?
+
+""",
+
+                    ok: "Execute",
+                    submitter: "appadmin"
+
+                )
+
+            }
+
+        }
+
+        stage('6. EXECUTE SQL') {
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'mysql-preprod-credentials',
+                        usernameVariable: 'DB_USER',
+                        passwordVariable: 'DB_PASSWORD'
+                    )
+                ]) {
+
+                    sh '''
+                        chmod +x cicd-sql/scripts/execute-sql.sh
+                        ./cicd-sql/scripts/execute-sql.sh runtime.sql
+                    '''
+
+                }
+
+            }
+
+        }
+
+    }
+
+    post {
+
+        success {
+
+            echo "=================================="
+            echo "SQL Deployment Successful"
+            echo "JIRA : ${params.JIRA_TICKET}"
+            echo "=================================="
+
+        }
+
+        failure {
+
+            echo "=================================="
+            echo "SQL Deployment Failed"
+            echo "JIRA : ${params.JIRA_TICKET}"
+            echo "=================================="
+
+        }
+
+        always {
+
+            sh 'rm -f runtime.sql'
+
+        }
+
+    }
+
+}
