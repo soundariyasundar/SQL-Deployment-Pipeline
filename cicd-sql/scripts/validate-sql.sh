@@ -42,24 +42,64 @@ if [ "$OPEN" -ne "$CLOSE" ]; then
     exit 1
 fi
 
-# ----------------------------------------------------
-# Block restricted SQL commands
-# ----------------------------------------------------
-if grep -iE '\b(DROP|TRUNCATE|ALTER|DELETE|UPDATE)\b' "$FILE"; then
+####################################################
+# Block DROP and TRUNCATE
+####################################################
+if grep -qiE '\b(DROP|TRUNCATE)\b' "$FILE"; then
     echo ""
     echo "======================================"
-    echo "ERROR: Restricted SQL command detected."
-    echo ""
-    echo "The following SQL commands are NOT allowed:"
-    echo "  - DROP"
-    echo "  - TRUNCATE"
-    echo "  - ALTER"
-    echo "  - DELETE"
-    echo "  - UPDATE"
-    echo ""
+    echo "ERROR: DROP and TRUNCATE statements are not allowed."
     echo "Pipeline execution stopped."
     echo "======================================"
     exit 1
+fi
+
+####################################################
+# Validate DELETE statements
+####################################################
+if grep -qiE '^\s*DELETE\b' "$FILE"; then
+
+    if ! grep -qiE '\bWHERE\b' "$FILE"; then
+        echo ""
+        echo "======================================"
+        echo "ERROR: DELETE statements must contain a WHERE clause."
+        echo "Pipeline execution stopped."
+        echo "======================================"
+        exit 1
+    fi
+
+fi
+
+####################################################
+# Validate UPDATE statements
+####################################################
+if grep -qiE '^\s*UPDATE\b' "$FILE"; then
+
+    if ! grep -qiE '\bWHERE\b' "$FILE"; then
+        echo ""
+        echo "======================================"
+        echo "ERROR: UPDATE statements must contain a WHERE clause."
+        echo "Pipeline execution stopped."
+        echo "======================================"
+        exit 1
+    fi
+
+fi
+
+####################################################
+# Validate INSERT ... SELECT statements
+####################################################
+if grep -qiE '^\s*INSERT\b.*\bSELECT\b' "$FILE"; then
+
+    if ! grep -qiE '\bWHERE\b' "$FILE"; then
+        echo ""
+        echo "======================================"
+        echo "ERROR: INSERT...SELECT statements must contain a WHERE clause."
+        echo "Pipeline execution stopped."
+        echo "======================================"
+        exit 1
+    fi
+
 fi
 
 # Warn if tabs are used
