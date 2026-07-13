@@ -42,6 +42,26 @@ if [ "$OPEN" -ne "$CLOSE" ]; then
     exit 1
 fi
 
+# ----------------------------------------------------
+# Block restricted SQL commands
+# ----------------------------------------------------
+if grep -iE '\b(DROP|TRUNCATE|ALTER|DELETE|UPDATE)\b' "$FILE"; then
+    echo ""
+    echo "======================================"
+    echo "ERROR: Restricted SQL command detected."
+    echo ""
+    echo "The following SQL commands are NOT allowed:"
+    echo "  - DROP"
+    echo "  - TRUNCATE"
+    echo "  - ALTER"
+    echo "  - DELETE"
+    echo "  - UPDATE"
+    echo ""
+    echo "Pipeline execution stopped."
+    echo "======================================"
+    exit 1
+fi
+
 # Warn if tabs are used
 if grep -q $'\t' "$FILE"; then
     echo "WARNING: Tabs detected. Use spaces for indentation."
@@ -53,7 +73,7 @@ if grep -nE "[[:blank:]]+$" "$FILE"; then
 fi
 
 # Warn if SQL keywords are lowercase
-if grep -qE "^[[:space:]]*(select|insert|update|delete|create|alter|drop|truncate|grant|revoke)" "$FILE"; then
+if grep -qiE "^[[:space:]]*(select|insert|update|delete|create|alter|drop|truncate|grant|revoke)" "$FILE"; then
     echo "WARNING: SQL keywords should preferably be uppercase."
 fi
 
